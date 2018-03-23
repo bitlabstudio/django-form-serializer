@@ -12,10 +12,25 @@ class DjangoFormSerializer(object):
             result.append(fieldset)
         return result
 
-    def get_choices(self, queryset):
-        return [
-            (str(instance.id), str(instance)) for instance in queryset.all()
-        ]
+    def get_choices(self, django_input_type, form, key):
+        if django_input_type in [
+                'RadioSelect', 'LazySelect', 'Select',
+                'CheckboxSelectMultiple'
+                ]:
+            if type(form.fields[key].choices) == list:
+                choices = form.fields[key].choices
+                return [
+                    (str(item[0]), str(item[1]))
+                    for item in choices
+                ]
+            else:  # 'Select'
+                queryset = form.fields[key].queryset
+                return [
+                    (str(instance.id), str(instance))
+                    for instance in queryset.all()
+                ]
+        else:
+            return None
 
     def get_initial_value(self, key, form):
         form_field = form.fields[key]
@@ -63,16 +78,11 @@ class DjangoFormSerializer(object):
 
             disabled = form.fields[key].disabled
             django_input_type = form.fields[key].widget.__class__.__name__
-            if django_input_type in ['RadioSelect', 'LazySelect', 'Select']:
-                if type(form.fields[key].choices) == list:
-                    choices = form.fields[key].choices
-                else:  # 'Select'
-                    queryset = form.fields[key].queryset
-                    choices = self.get_choices(queryset)
-
+            choices = self.get_choices(django_input_type, form, key)
             value = self.get_initial_value(key, form)
             label = form.fields[key].label
             placeholder = self.get_placeholder(key, form)
+
             if key == 'tags':
                 label = "Tags"
 
@@ -82,5 +92,6 @@ class DjangoFormSerializer(object):
             input_element['label'] = label
             input_element['placeholder'] = placeholder
             input_element['disabled'] = disabled
+
             result['fields'][key] = input_element
         return result
