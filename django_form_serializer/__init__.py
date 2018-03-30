@@ -15,9 +15,10 @@ class DjangoFormSerializer(object):
     def get_choices(self, django_input_type, form, key):
         if django_input_type in [
                 'RadioSelect', 'LazySelect', 'Select',
-                'CheckboxSelectMultiple'
+                'CheckboxSelectMultiple',
                 ]:
-            if type(form.fields[key].choices) == list:
+            if (type(form.fields[key].choices) == list or
+                    form.fields[key].to_field_name):
                 choices = form.fields[key].choices
                 return [
                     (str(item[0]), str(item[1]))
@@ -36,6 +37,7 @@ class DjangoFormSerializer(object):
         form_field = form.fields[key]
         field_type = form_field.__class__.__name__
         initial_value = None
+
         if field_type == 'ImageField':
             try:
                 initial_value = form.initial[key].url
@@ -48,7 +50,8 @@ class DjangoFormSerializer(object):
             if form.initial[key]:
                 initial_value = list(form.initial[key].values(
                     'tag__slug', 'tag__name'))
-        elif field_type in ['TypedChoiceField', 'BooleanField']:
+        elif field_type in ['TypedChoiceField', 'BooleanField',
+                            'MultipleChoiceField']:
             initial_value = form.initial.get(key)
             return initial_value
         else:
@@ -94,4 +97,5 @@ class DjangoFormSerializer(object):
             input_element['disabled'] = disabled
 
             result['fields'][key] = input_element
+
         return result
