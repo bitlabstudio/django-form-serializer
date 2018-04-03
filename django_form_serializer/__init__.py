@@ -33,30 +33,36 @@ class DjangoFormSerializer(object):
         else:
             return None
 
-    def get_initial_value(self, key, form):
+    def get_value(self, key, form):
         form_field = form.fields[key]
         field_type = form_field.__class__.__name__
         initial_value = None
 
+        if form.data:
+            state = form.data
+        else:
+            state = form.initial
+
         if field_type == 'ImageField':
             try:
-                initial_value = form.initial[key].url
+                initial_value = state[key].url
             except:
                 initial_value = None
         elif field_type == 'LazyTypedChoiceField':
-            initial_value = form.initial.get(key).code if form.initial.get(
-                key) else None
+            initial_value = state.get(key).code if state.get(key) else None
         elif field_type == 'TagField':
-            if form.initial[key]:
-                initial_value = list(form.initial[key].values(
-                    'tag__slug', 'tag__name'))
+            if state[key]:
+                initial_value = list(
+                    state[key].values('tag__slug', 'tag__name')
+                )
         elif field_type in ['TypedChoiceField', 'BooleanField',
                             'MultipleChoiceField']:
-            initial_value = form.initial.get(key)
+            initial_value = state.get(key)
             return initial_value
         else:
             initial_value = str(
-                form.initial.get(key)) if form.initial.get(key) else None
+                state.get(key)
+            ) if state.get(key) is not None else None
         return (initial_value if initial_value else '')
 
     def get_placeholder(self, key, form):
@@ -82,7 +88,7 @@ class DjangoFormSerializer(object):
             disabled = form.fields[key].disabled
             django_input_type = form.fields[key].widget.__class__.__name__
             choices = self.get_choices(django_input_type, form, key)
-            value = self.get_initial_value(key, form)
+            value = self.get_value(key, form)
             label = form.fields[key].label
             placeholder = self.get_placeholder(key, form)
 
